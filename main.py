@@ -1,18 +1,29 @@
+import pandas as pd
 from typing import Dict
 from numpy import ndarray
 import numpy as np
+from constants import *
+import re
 
-# Collection of documents (corpus)
-review_1 = "The Glider II is a great soccer ball"
-review_2 = "What a bad soccer ball"
-review_3 = "I am happy with the glider"
+# get products from csv file
+df = pd.read_csv('gathered-products-detail.csv', encoding='latin1') #encoding is important because we are on windows: https://pyquestions.com/unicodedecodeerror-utf-8-codec-can-t-decode-byte-0x96-in-position-35-invalid-start-byte 
+df = df.reset_index()  # make sure indexes pair with number of rows
 
-docs = [review_1, review_2, review_3]
- 
+# cleaning up (this might not be necessary in the future)
+product_names = []
+docs = []
+for index, row in df.iterrows():
+  stringDoc = ''
+  for key in product_keys:
+    if key == 'name':
+      product_names.append(row[key])
+    stringDoc += ' ' + re.sub("[,\[\]]", " ", str(row[key]))
+  docs.append(stringDoc)
+
 # Gather the set of all unique terms
-unique_terms = np.array([term for doc in docs for term in doc.split()])
+unique_terms = { term for doc in docs for term in doc.split() }
 
-# Construct a term-document matrix
+# Construct a term document incidence matrix
 term_doc_inc_matrix: Dict[str, list[int]] = {}
 
 for term in unique_terms:
@@ -24,7 +35,7 @@ for term in unique_terms:
     else:
       term_doc_inc_matrix[term].append(0)
 
-docs_array = np.array(docs, dtype='object')
+names_array = np.array(product_names, dtype='object')
 
 print('Pick: AND or OR Boolean Retrieval')
 retriveal_type = input("Enter 'AND' or 'OR': ")
@@ -40,17 +51,19 @@ if retriveal_type == 'AND':
     else:
       break
 
+  # construct our vector list based on the input terms from the user
   vectors: list[ndarray] = []
   for term in terms:
     vectors.append(np.array(term_doc_inc_matrix[term]))
 
+  # perform an AND bitwise operation on all vectors
   result = np.array([1] * len(docs))
   for vector in vectors:
     result = result & vector
   print(result)
 
   # Get the matching documents from our corpus with the result
-  docs = [doc for doc in result * docs_array if doc]
+  docs = [doc for doc in result * names_array if doc] # only retrive the product name
   print(docs)
 else:
   print("OR Boolean Retrieval\n")
@@ -63,15 +76,17 @@ else:
     else:
       break
 
+  # construct our vector list based on the input terms from the user
   vectors: list[ndarray] = []
   for term in terms:
     vectors.append(np.array(term_doc_inc_matrix[term]))
 
+  # perform an OR bitwise operation on all vectors
   result: ndarray = np.array([0] * len(docs))
   for vector in vectors:
     result = result | vector
   print(result)
 
   # Get the matching documents from our corpus with the result
-  docs = [doc for doc in result * docs_array if doc]
+  docs = [doc for doc in result * names_array if doc] # only retrive the product name
   print(docs)
