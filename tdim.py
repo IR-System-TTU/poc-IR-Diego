@@ -1,25 +1,11 @@
-import pandas as pd
 from typing import Dict
 from numpy import ndarray
 import numpy as np
-from constants import *
-import re
+
+from helpers import read_csv_and_cleanup
 
 def tdim_execute():
-  # get products from csv file
-  df = pd.read_csv('gathered-products-detail.csv', encoding='latin1') #encoding is important because we are on windows: https://pyquestions.com/unicodedecodeerror-utf-8-codec-can-t-decode-byte-0x96-in-position-35-invalid-start-byte 
-  df = df.reset_index()  # make sure indexes pair with number of rows
-
-  # cleaning up (this might not be necessary in the future)
-  product_names = []
-  docs = []
-  for index, row in df.iterrows():
-    stringDoc = ''
-    for key in product_keys:
-      if key == 'name':
-        product_names.append(row[key])
-      stringDoc += ' ' + re.sub("[,\[\]]", " ", str(row[key]))
-    docs.append(stringDoc)
+  docs, product_names = read_csv_and_cleanup('gathered-products-detail')
 
   # Gather the set of all unique terms
   unique_terms = { term for doc in docs for term in doc.split() }
@@ -55,7 +41,11 @@ def tdim_execute():
     # construct our vector list based on the input terms from the user
     vectors: list[ndarray] = []
     for term in terms:
-      vectors.append(np.array(term_doc_inc_matrix[term]))
+      if term in term_doc_inc_matrix:
+        vectors.append(np.array(term_doc_inc_matrix[term]))
+
+    if len(vectors) == 0:
+      return 0
 
     # perform an AND bitwise operation on all vectors
     result = np.array([1] * len(docs))
@@ -80,8 +70,12 @@ def tdim_execute():
     # construct our vector list based on the input terms from the user
     vectors: list[ndarray] = []
     for term in terms:
-      vectors.append(np.array(term_doc_inc_matrix[term]))
+      if term in term_doc_inc_matrix:
+        vectors.append(np.array(term_doc_inc_matrix[term]))
 
+    if len(vectors) == 0:
+      return 0
+      
     # perform an OR bitwise operation on all vectors
     result: ndarray = np.array([0] * len(docs))
     for vector in vectors:
