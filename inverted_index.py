@@ -73,6 +73,8 @@ def ii_execute():
     while True:
       term = input("Enter term: ")
       if term != '.':
+        if term not in inverted_index:
+          continue
         posting_lists.append(list(inverted_index[term]['posting-list']))
       else:
         break
@@ -106,6 +108,8 @@ def ii_execute():
     while True:
       term = input("Enter term: ")
       if term != '.':
+        if term not in inverted_index:
+          continue
         posting_lists.append(list(inverted_index[term]['posting-list']))
       else:
         break
