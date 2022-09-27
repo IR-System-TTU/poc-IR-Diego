@@ -1,29 +1,19 @@
 from operator import itemgetter
 from typing import Dict
-import numpy as np
+from helpers import read_csv_and_cleanup
 
 def ii_execute():
-  # Collection of documents (corpus)
-  review_1 = "The Glider II is a great soccer ball"
-  review_2 = "What a bad soccer ball"
-  review_3 = "I am happy with the glider"
-
-  docs = [review_1, review_2, review_3]
+  docs, product_names = read_csv_and_cleanup('gathered-products-detail')
   
   # Construct an inverted index
-
-  inverted_index: Dict[str, list] = {}
+  inverted_index: Dict[str, set] = {}
 
   for i, doc in enumerate(docs):
     for term in doc.split():
       if term in inverted_index:
-        inverted_index[term].append(i)
+        inverted_index[term].add(i)
       else:
-        inverted_index[term] = [i]
-
-  # # Getting the postings lists for any term
-  # posting_list = inverted_index['soccer']
-  # print(posting_list)
+        inverted_index[term] = {i}
 
   # Perform or boolean retrieval
   def or_postings(posting1, posting2):
@@ -47,8 +37,8 @@ def ii_execute():
     while p2 < len(posting2):
       result.append(posting2[p2])
       p2 += 1
-    res_list = list(itemgetter(*result)(docs))
-    print(res_list)
+      
+    return result
 
   def and_postings(posting1, posting2):
     p1 = 0
@@ -64,7 +54,7 @@ def ii_execute():
       else:
         p1 += 1
 
-    print(list(itemgetter(*result)(docs))) if len(result) > 1 else print([docs[result[0]]])
+    return result
 
   print('Pick: AND or OR Boolean Retrieval')
   retriveal_type = input("Enter 'AND' or 'OR': ")
@@ -72,15 +62,66 @@ def ii_execute():
   if retriveal_type == 'AND':
     print("AND Boolean Retrieval\n")
 
-    pl_1 = inverted_index['great']
-    pl_2 = inverted_index['soccer']
-    and_postings(pl_1, pl_2)
+    posting_lists = []
+    while True:
+      term = input("Enter term: ")
+      if term != '.':
+        posting_lists.append(list(inverted_index[term]))
+      else:
+        break
+
+ 
+    if len(posting_lists) == 0:
+      return 0
+
+    sorted_posting_lists = sorted(posting_lists, key=lambda x: len(x))
+
+    result = list()
+
+    for i in range(0, len(sorted_posting_lists), 2):
+      pl_1 = sorted_posting_lists[i]
+      pl_2 = sorted_posting_lists[i]
+      if i + 1 < len(sorted_posting_lists):
+        pl_2 = sorted_posting_lists[i + 1]
+
+      result = and_postings(pl_1, pl_2)
+
+    if len(result) == 0:
+      return 0
+      
+    print(list(itemgetter(*result)(product_names))) if len(result) > 1 else print([product_names[result[0]]])
+
   else:
     print("OR Boolean Retrieval\n")
 
-    pl_1 = inverted_index['soccer']
-    pl_2 = inverted_index['glider']
-    or_postings(pl_1, pl_2)
+    posting_lists = []
+    while True:
+      term = input("Enter term: ")
+      if term != '.':
+        posting_lists.append(list(inverted_index[term]))
+      else:
+        break
+
+ 
+    if len(posting_lists) == 0:
+      return 0
+
+    sorted_posting_lists = sorted(posting_lists, key=lambda x: len(x))
+
+    result = list()
+
+    for i in range(0, len(sorted_posting_lists), 2):
+      pl_1 = sorted_posting_lists[i]
+      pl_2 = list()
+      if i + 1 < len(sorted_posting_lists):
+        pl_2 = sorted_posting_lists[i + 1]
+
+      result = or_postings(pl_1, pl_2)
+
+    if len(result) == 0:
+      return 0
+      
+    print(list(itemgetter(*result)(product_names))) if len(result) > 1 else print([product_names[result[0]]])
 
 
 
